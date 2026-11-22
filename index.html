@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Analyzer — Personal Finance Dashboard</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emerald: { DEFAULT: '#2DC999', light: '#E6FAF4', dark: '#1FA97E' },
+            slate: { 50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1', 400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155', 800: '#1E293B', 900: '#0F172A' }
+          },
+          fontFamily: { sans: ['-apple-system', 'Segoe UI', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            card: '0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04)',
+            'card-hover': '0 4px 12px rgba(0,0,0,.10), 0 8px 24px rgba(0,0,0,.06)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-sans">
+
+  <!-- ════════════════ TOP NAVBAR ════════════════ -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald text-white text-lg font-bold shadow-sm" style="background:#2DC999;">₿</span>
+        <div>
+          <h1 class="text-base font-bold text-slate-800 leading-tight">Expense Analyzer</h1>
+          <p class="text-xs text-slate-400 leading-tight">Personal Finance Dashboard</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="lastUpdated" class="hidden sm:block text-xs text-slate-400"></span>
+        <button id="btnAddExpense"
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
+          style="background:#2DC999;">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Add Expense
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════ MAIN WRAPPER ════════════════ -->
+  <main class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ── FILTERS BAR ── -->
+    <section aria-label="Filters" class="bg-white rounded-2xl border border-slate-200 shadow-card p-4">
+      <div class="flex flex-wrap gap-3 items-end">
+        <div class="filter-group">
+          <label class="filter-label">Month</label>
+          <select id="filterMonth" class="filter-select">
+            <option value="">All Months</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Category</label>
+          <select id="filterCategory" class="filter-select">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Payment Method</label>
+          <select id="filterPayment" class="filter-select">
+            <option value="">All Methods</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Type</label>
+          <select id="filterType" class="filter-select">
+            <option value="">All Types</option>
+            <option value="Needs">Needs</option>
+            <option value="Wants">Wants</option>
+            <option value="Savings">Savings</option>
+          </select>
+        </div>
+        <button id="btnResetFilter"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-150 font-medium self-end">
+          Reset
+        </button>
+        <div class="ml-auto self-end">
+          <span id="resultCount" class="text-xs text-slate-400 font-medium"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── KPI CARDS ── -->
+    <section aria-label="KPI Summary" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="kpi-card" id="kpiTotalExpense">
+        <div class="kpi-icon" style="background:#EEF9F4; color:#2DC999;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <p class="kpi-label">Total Expense</p>
+          <p class="kpi-value" id="valTotalExpense">—</p>
+          <p class="kpi-sub" id="subTotalExpense"></p>
+        </div>
+      </div>
+      <div class="kpi-card" id="kpiTotalTx">
+        <div class="kpi-icon" style="background:#EFF6FF; color:#3B82F6;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div>
+          <p class="kpi-label">Total Transactions</p>
+          <p class="kpi-value" id="valTotalTx">—</p>
+          <p class="kpi-sub" id="subTotalTx"></p>
+        </div>
+      </div>
+      <div class="kpi-card" id="kpiAvgDaily">
+        <div class="kpi-icon" style="background:#FFF7ED; color:#F97316;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <p class="kpi-label">Avg Daily Spend</p>
+          <p class="kpi-value" id="valAvgDaily">—</p>
+          <p class="kpi-sub" id="subAvgDaily"></p>
+        </div>
+      </div>
+      <div class="kpi-card" id="kpiTopCat">
+        <div class="kpi-icon" style="background:#FAF5FF; color:#A855F7;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+        </div>
+        <div>
+          <p class="kpi-label">Top Category</p>
+          <p class="kpi-value text-base" id="valTopCat">—</p>
+          <p class="kpi-sub" id="subTopCat"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SMART FINANCIAL INSIGHT ── -->
+    <section id="smartInsightCard" aria-label="Smart Financial Insight">
+      <div class="insight-card">
+        <div class="insight-card-header">
+          <div class="flex items-center gap-2">
+            <span class="insight-header-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.346A3.73 3.73 0 0012 16.69a3.73 3.73 0 01-2.59-1.045l-.346-.345z"/>
+              </svg>
+            </span>
+            <h2 class="insight-card-title">Smart Financial Insight</h2>
+            <span class="insight-live-badge">Live</span>
+          </div>
+          <p class="insight-card-sub">Analisis otomatis berdasarkan data yang difilter · Aturan 50/30/20</p>
+        </div>
+        <div id="smartInsightBody" class="insight-grid">
+          <!-- populated by renderSmartInsight() -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CHARTS ROW 1: Line + Polar Area ── -->
+    <section class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div class="chart-card lg:col-span-3">
+        <div class="chart-header">
+          <h2 class="chart-title">Monthly Spending Trend</h2>
+          <span class="chart-badge">Line Chart</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="chartMonthlyTrend"></canvas>
+        </div>
+      </div>
+      <div class="chart-card lg:col-span-2">
+        <div class="chart-header">
+          <h2 class="chart-title">Expense by Category</h2>
+          <span class="chart-badge">Polar Area</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="chartCategory"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CHARTS ROW 2: Doughnut + Pie ── -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Payment Method Distribution</h2>
+          <span class="chart-badge">Doughnut</span>
+        </div>
+        <div class="chart-body-sm">
+          <canvas id="chartPayment"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Needs vs Wants vs Savings</h2>
+          <span class="chart-badge">Pie Chart</span>
+        </div>
+        <div class="chart-body-sm">
+          <canvas id="chartType"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TOP 10 TABLE ── -->
+    <section class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Top 10 Largest Expenses</h2>
+        <span class="chart-badge">Table View</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-100">
+              <th class="th-cell text-left">#</th>
+              <th class="th-cell text-left">Date</th>
+              <th class="th-cell text-left">Description</th>
+              <th class="th-cell text-left">Category</th>
+              <th class="th-cell text-left">Method</th>
+              <th class="th-cell text-center">Type</th>
+              <th class="th-cell text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="tableTop10">
+            <tr><td colspan="7" class="py-8 text-center text-slate-400 text-sm">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ════════════════ FOOTER ════════════════ -->
+  <footer class="mt-10 pb-6 text-center text-xs text-slate-400 border-t border-slate-200 pt-4">
+    Expense Analyzer · Personal Finance Dashboard · Data stored in-session only
+  </footer>
+
+  <!-- ════════════════ QUICK ADD MODAL ════════════════ -->
+  <div id="modalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="flex items-center justify-between mb-5">
+        <h2 id="modalTitle" class="text-lg font-bold text-slate-800">Add New Expense</h2>
+        <button id="btnCloseModal" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="formAddExpense" class="space-y-4" novalidate>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label" for="inpDate">Date <span class="text-red-400">*</span></label>
+            <input type="date" id="inpDate" class="form-input" required />
+          </div>
+          <div>
+            <label class="form-label" for="inpAmount">Amount (IDR) <span class="text-red-400">*</span></label>
+            <input type="number" id="inpAmount" class="form-input" placeholder="e.g. 50000" min="1" required />
+          </div>
+        </div>
+        <div>
+          <label class="form-label" for="inpDesc">Description <span class="text-red-400">*</span></label>
+          <input type="text" id="inpDesc" class="form-input" placeholder="e.g. Makan siang di Warteg" required />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label" for="inpCategory">Category <span class="text-red-400">*</span></label>
+            <select id="inpCategory" class="form-input" required>
+              <option value="">Select…</option>
+              <option>Food & Dining</option>
+              <option>Transportation</option>
+              <option>Groceries</option>
+              <option>Entertainment</option>
+              <option>Shopping</option>
+              <option>Utilities</option>
+              <option>Health</option>
+              <option>Internet</option>
+              <option>Savings</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="inpPayment">Payment Method <span class="text-red-400">*</span></label>
+            <select id="inpPayment" class="form-input" required>
+              <option value="">Select…</option>
+              <option>Cash</option>
+              <option>Debit Card</option>
+              <option>Credit Card</option>
+              <option>GoPay</option>
+              <option>OVO</option>
+              <option>Dana</option>
+              <option>Shopee Pay</option>
+              <option>Bank Transfer</option>
+              <option>BPJS</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="form-label">Type <span class="text-red-400">*</span></label>
+          <div class="flex gap-3 mt-1">
+            <label class="type-pill"><input type="radio" name="inpType" value="Needs" required /><span>Needs</span></label>
+            <label class="type-pill"><input type="radio" name="inpType" value="Wants" /><span>Wants</span></label>
+            <label class="type-pill"><input type="radio" name="inpType" value="Savings" /><span>Savings</span></label>
+          </div>
+        </div>
+        <div id="formError" class="hidden text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2"></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="btnCancelModal" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancel</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 shadow-sm" style="background:#2DC999;">
+            + Save Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ════════════════ TOAST NOTIFICATION ════════════════ -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
